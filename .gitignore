@@ -1,3 +1,5 @@
+NOTES.md
+
 ### https://raw.github.com/github/gitignore/d866fb556184cc1edffd9d0f1ca205fe1916a7f6/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
@@ -54,5 +56,3 @@ docs/_build/
 
 # PyBuilder
 target/
-
-
