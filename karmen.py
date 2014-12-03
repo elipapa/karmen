@@ -25,7 +25,9 @@ ALMOND, BITTER
 
 import sys
 from lxml import etree
+import argparse
 
+# Parse tree
 langual = etree.parse('LanguaL2013.XML')
 """
 the tree structure is not represented as XML hierarchy. each descriptor is at the same leve. The hierarchy is coded using parents IDs:
@@ -33,7 +35,7 @@ FTC is the node ID
 BT is the parent ID
 """
 
-# TODO should probably use http://networkx.github.io/
+# TODO should turn all of this in a LanguaL thesaurus class
 
 def get_ftc(xmlelement):
     """returns a string with the langual code
@@ -57,7 +59,7 @@ def find_byname(searchstring, langualtree=langual):
     """returns list of XML DESCRIPTOR elements that have an exact
      match to the provided term
 
-    >>> d = find_byname('ALMOND')
+    >>> d = find_byname('ALMOND')[0]
     >>> get_ftc(d)
     'B1272'
     """
@@ -77,9 +79,9 @@ def contains_name(searchstring, langualtree=langual):
 
 def find_byftc(searchftc, langualtree=langual):
     """
-    >>> d = find_byftc('B1272')
+    >>> d = find_byftc('B1272')[0]
     >>> get_name(d)
-'ALMOND'
+    'ALMOND'
     """
     return [t.getparent() for t in langualtree.iter(tag="FTC")
                             if t.text == searchftc]
@@ -113,13 +115,11 @@ def search(searchterm, langualtree = langual):
     pass
 
 
-
 def find_allparents(xmlelement, langualtree=langual):
     """returns a list of all xml elements from root to the current element
-
     >>> descr = find_byname('ALMOND')[0]
     >>> [get_name(d) for d in reversed(find_allparents(descr))]
-['LANGUAL THESAURUS ROOT', 'B.   FOOD SOURCE', 'PLANT USED AS FOOD SOURCE', 'GRAIN OR SEED-PRODUCING PLANT', 'NUT OR EDIBLE SEED PRODUCING PLANT', 'NUT PRODUCING PLANT', 'TEMPERATE-ZONE NUT PRODUCING PLANT', 'ALMOND']
+    ['LANGUAL THESAURUS ROOT', 'B.   FOOD SOURCE', 'PLANT USED AS FOOD SOURCE', 'GRAIN OR SEED-PRODUCING PLANT', 'NUT OR EDIBLE SEED PRODUCING PLANT', 'NUT PRODUCING PLANT', 'TEMPERATE-ZONE NUT PRODUCING PLANT', 'ALMOND']
     """
     branch = [xmlelement]
     thisnode = xmlelement
@@ -138,6 +138,7 @@ def find_allparents(xmlelement, langualtree=langual):
 def elementlist_tostr(elementlist):
     return [ '        '.join([get_ftc(d),get_name(d)]) for d in elementlist ]
 
+
 def print_astree(stringlist):
     """assumes root to child order
     """
@@ -148,6 +149,17 @@ def print_astree(stringlist):
     return
 
 
+# TODO implement a search function that whatever the input gives me a printouf of the hierarchy
+
+# TODO include children into print out of hierarchy
+
+# TODO argparse to use subcommands https://docs.python.org/3/library/argparse.html#sub-commands
 
 if __name__ == '__main__':
-        pass
+    parser = argparse.ArgumentParser(description='browse LanguaL thesaurus on the command line')
+    parser.add_argument('searchstring')
+
+    args = parser.parse_args()
+
+    L = get_ftc(find_byname(args.searchstring)[0])
+    print(L)
