@@ -3,13 +3,21 @@
 """command/hack to lookup LanguaL food items.
 Also has utilities to explore the hierarchy
 
-Ideally:
+Ideally (not yet fully implemented):
 
 $ karmen 'ALMOND' (equivalent to karmen search 'ALMOND')
 B1272
 
 $ karmen search 'B1272'
 ALMOND
+
+$ karmen contains 'ALMOND'
+ALMOND
+ALMOND, BITTER
+ALMOND, SWEET
+JAVA-ALMOND
+NUTSEDGE
+TROPICAL ALMOND
 
 $ karmen tree 'ALMOND'
 B1213, NUT PRODUCING PLANT
@@ -27,6 +35,7 @@ import sys
 from lxml import etree
 import argparse
 import re
+from collections import deque
 
 # Parse tree
 langual = etree.parse('LanguaL2013.XML')
@@ -100,21 +109,48 @@ def find_parent(xmlelement):
     return find_byftc(get_parentcode(xmlelement))[0]
 
 
-def find_children(xmlelement, langualtree = langual):
+def find_children(xmlelements, langualtree = langual):
     """returns a list of all children,
     meaning all terms who have this element's FTC code listed as their BT code.
+
+    it assumes a list as input to remain general. If len(list)==1 then the
+     behaviour is consistent with expectation.
     """
-    thiscode = get_ftc(xmlelement)
-    return [t.getparent() for t in langualtree.iter(tag='BT')
+    children = []
+    for e in xmlelements:
+        thiscode = get_ftc(e)
+        thischildren = [t.getparent() for t in langualtree.iter(tag='BT')
                             if t.text == thiscode]
+        children.extend(thischildren)
+    return children
 
 
-def find_descendants(xmlelement, langualtree = langual):
-    """returns a list of all descendants,going down the children recursively.
+def find_descendants(xmlelements, langualtree = langual):
     """
-    thiscode = get_ftc(xmlelement)
-    return [t.getparent() for t in langualtree.iter(tag='BT')
-                                if t.text == thiscode]
+    takes a list of nodes and returns a list of all branches and leaves
+    descending from those nodes. Uses a queue to avoid recursion.
+
+    This can be used to exclude all the foods having LanguaL classification
+    below the given nodes and thereby allowing to prescribe a diet in the most
+    general terms
+    """
+
+    #TODO must speed this up! though most of the time is spent
+    #     on the .iter lxml function, so there may not be much more
+
+    queue = deque(xmlelements)
+    desc = xmlelements #Notice the returned list also includes the given root.
+
+    while len(queue) > 0:
+        thisnode = queue.popleft()
+        children = find_children([thisnode])
+        if not children:
+            pass
+        else:
+            desc.extend(children)
+            queue.extend(children)
+
+    return desc
 
 
 
@@ -163,7 +199,7 @@ def search(searchterm, withtree = True, langualtree = langual):
             return
 
     else:
-        elmt = find_byname(searchterm
+        elmt = find_byname(searchterm)
         if not elmt:
             print("can't find an exact match for: " + searchterm + "\n")
             elmt = contains_name(searchterm)
@@ -183,27 +219,16 @@ def search(searchterm, withtree = True, langualtree = langual):
     return
 
 
-def ischild(possible_parent, xmlelement, langualtree = langual):
+def ischild(possible_parents, xmlelements, langualtree = langual):
     """returns true if xmlelement is a child of possible_parent
 
     >>> ischild(find_byname('FISH')[0], find_byftc('B1234'))
     True
     """
-    descendants = find_descendants(possible_parent)
-    return (xmlelement in descendants)
+    e = xmlelements[0] #cannot check for all children simultaneously
+    descendants = find_descendants(possible_parents)
+    return (e in descendants)
 
-
-def expand_nodes(elementlist, langualtree = langual):
-    """takes a list of nodes and returns a list of all branches and leaves
-    descending from those nodes.
-    This can be used to exclude all the foods having LanguaL classification
-    below the given nodes and thereby allowing to prescribe a diet in the most
-    general terms
-    """
-    expandedL = elementlist
-    for elemt in elementlist:
-        L.extend( find_allchildren(elemt) )
-    return expandedL
 
 
 # TODO include children into print out of hierarchy
