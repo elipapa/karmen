@@ -100,13 +100,21 @@ def find_parent(xmlelement):
     return find_byftc(get_parentcode(xmlelement))[0]
 
 
-def find_allchildren(xmlelement, langualtree = langual):
+def find_children(xmlelement, langualtree = langual):
     """returns a list of all children,
     meaning all terms who have this element's FTC code listed as their BT code.
     """
     thiscode = get_ftc(xmlelement)
     return [t.getparent() for t in langualtree.iter(tag='BT')
                             if t.text == thiscode]
+
+
+def find_descendants(xmlelement, langualtree = langual):
+    """returns a list of all descendants,going down the children recursively.
+    """
+    thiscode = get_ftc(xmlelement)
+    return [t.getparent() for t in langualtree.iter(tag='BT')
+                                if t.text == thiscode]
 
 
 
@@ -177,8 +185,11 @@ def search(searchterm, withtree = True, langualtree = langual):
 
 def ischild(possible_parent, xmlelement, langualtree = langual):
     """returns true if xmlelement is a child of possible_parent
+
+    >>> ischild(find_byname('FISH')[0], find_byftc('B1234'))
+    True
     """
-    descendants = find_allchildren(possible_parent)
+    descendants = find_descendants(possible_parent)
     return (xmlelement in descendants)
 
 
