@@ -32,13 +32,15 @@ ALMOND, BITTER
 
 
 import sys
+import os
 from lxml import etree
 import argparse
 import re
 from collections import deque
 
 # Parse tree
-langual = etree.parse('LanguaL2013.XML')
+langual_file = os.path.join(os.path.dirname(__file__), 'LanguaL2013.XML')
+langual = etree.parse(langual_file)
 """
 the tree structure is not represented as XML hierarchy. each descriptor is at the same leve. The hierarchy is coded using parents IDs:
 FTC is the node ID
@@ -136,7 +138,7 @@ def find_descendants(xmlelements, langualtree = langual):
     """
 
     #TODO must speed this up! though most of the time is spent
-    #     on the .iter lxml function, so there may not be much more
+    #     on the .iter lxml function, so there may not be much more room
 
     queue = deque(xmlelements)
     desc = xmlelements #Notice the returned list also includes the given root.
