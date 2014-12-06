@@ -26,6 +26,7 @@ ALMOND, BITTER
 import sys
 from lxml import etree
 import argparse
+import re
 
 # Parse tree
 langual = etree.parse('LanguaL2013.XML')
@@ -64,7 +65,7 @@ def find_byname(searchstring, langualtree=langual):
     'B1272'
     """
     return [t.getparent() for t in langualtree.iter(tag="TERM")
-                            if t.text == searchstring]
+                            if t.text == searchstring.upper()]
 
 
 def contains_name(searchstring, langualtree=langual):
@@ -74,7 +75,8 @@ def contains_name(searchstring, langualtree=langual):
     >>> [get_name(d) for d in descrL]
     ['ALMOND', 'ALMOND, SWEET', 'ALMOND, BITTER', 'JAVA-ALMOND', 'JAVA-ALMOND', 'TROPICAL ALMOND']
     """
-    return [t.getparent() for t in langualtree.iter(tag="TERM") if searchstring in t.text]
+    return [t.getparent() for t in langualtree.iter(tag="TERM")
+                            if searchstring.upper() in t.text]
 
 
 def find_byftc(searchftc, langualtree=langual):
@@ -98,7 +100,7 @@ def find_parent(xmlelement):
     return find_byftc(get_parentcode(xmlelement))[0]
 
 
-def find_children(xmlelement, langualtree = langual):
+def find_allchildren(xmlelement, langualtree = langual):
     """returns a list of all children,
     meaning all terms who have this element's FTC code listed as their BT code.
     """
@@ -106,13 +108,6 @@ def find_children(xmlelement, langualtree = langual):
     return [t.getparent() for t in langualtree.iter(tag='BT')
                             if t.text == thiscode]
 
-
-def search(searchterm, langualtree = langual):
-    """command line command which recognized if input is code or name and uses the right function to query xml file
-    """
-    # TODO
-    # if searchterm[1] is an FTC code
-    pass
 
 
 def find_allparents(xmlelement, langualtree=langual):
@@ -143,23 +138,87 @@ def print_astree(stringlist):
     """assumes root to child order
     """
     for i,e in enumerate(stringlist):
-        leading = '|-'
+        leading = '+-'
         print('      ' * i + leading + e)
 
     return
 
 
-# TODO implement a search function that whatever the input gives me a printouf of the hierarchy
+def search(searchterm, withtree = True, langualtree = langual):
+    """command line command which recognized if input is code or name and uses the right function to query xml file
+    """
+    codes = re.compile(r'[A-Z]\d{4}\b')
+    if codes.match(searchterm):
+        elmt = find_byftc(searchterm)
+        if not elmt:
+            print("can't find: " + searchterm + "\n")
+            return
+
+    else:
+        elmt = find_byname(searchterm
+        if not elmt:
+            print("can't find an exact match for: " + searchterm + "\n")
+            elmt = contains_name(searchterm)
+            if not elmt:
+                print("can't find anything containing: " + searchterm + "\n")
+                return
+
+    for e in elmt:
+        if withtree:
+            elmtL = reversed(find_allparents(e))
+            print_astree(elementlist_tostr(elmtL))
+            print("\n--------\n")
+        else:
+            print( '        '.join([get_ftc(e),get_name(e)]) )
+            print("\n--------\n")
+
+    return
+
+
+def ischild(possible_parent, xmlelement, langualtree = langual):
+    """returns true if xmlelement is a child of possible_parent
+    """
+    descendants = find_allchildren(possible_parent)
+    return (xmlelement in descendants)
+
+
+def expand_nodes(elementlist, langualtree = langual):
+    """takes a list of nodes and returns a list of all branches and leaves
+    descending from those nodes.
+    This can be used to exclude all the foods having LanguaL classification
+    below the given nodes and thereby allowing to prescribe a diet in the most
+    general terms
+    """
+    expandedL = elementlist
+    for elemt in elementlist:
+        L.extend( find_allchildren(elemt) )
+    return expandedL
+
 
 # TODO include children into print out of hierarchy
 
-# TODO argparse to use subcommands https://docs.python.org/3/library/argparse.html#sub-commands
+
+def main():
+    parser = argparse.ArgumentParser(description='browse LanguaL thesaurus on the command line')
+    parser.add_argument('searchstring', help = 'search term')
+
+
+# # TODO argparse to use subcommands https://docs.python.org/3/library/argparse.html#sub-commands
+#
+#
+#     subparsers = parser.add_subparsers()
+#     parser_search = subparsers.add_parser('search', help="searches by code or name")
+#     parser_search.add_argument('withtree', help="do not display hierarchy")
+
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+    else:
+        args = parser.parse_args()
+        search(searchstring)
+
+
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='browse LanguaL thesaurus on the command line')
-    parser.add_argument('searchstring')
-
-    args = parser.parse_args()
-
-    L = get_ftc(find_byname(args.searchstring)[0])
-    print(L)
+    main()
