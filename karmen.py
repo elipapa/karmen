@@ -90,14 +90,24 @@ def contains_name(searchstring, langualtree=langual):
                             if searchstring.upper() in t.text]
 
 
+
 def find_byftc(searchftc, langualtree=langual):
     """
     >>> d = find_byftc('B1272')[0]
     >>> get_name(d)
     'ALMOND'
     """
-    return [t.getparent() for t in langualtree.iter(tag="FTC")
-                            if t.text == searchftc]
+    if isinstance(searchftc,str):
+        searchftc = [searchftc]
+
+    tolookup = [x.upper() for x in searchftc]
+
+    elist = []
+    for element in langualtree.iter(tag="FTC"):
+        if element.text in tolookup:
+            elist.append(element.getparent())
+
+    return elist
 
 
 def find_parent(xmlelement):
